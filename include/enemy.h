@@ -12,10 +12,10 @@
 class Enemy
 {
 public:
-    Enemy(ngl::Vec3 _pos);
-    Enemy() = default;
+    Enemy();
     void move(const ngl::Vec3 &m_spherePos);
     void draw();
+    void drawInit();
     void setSteer();
     inline ngl::Vec3 getPosition() {return m_pos;}
     bool prey;

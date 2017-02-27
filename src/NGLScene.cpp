@@ -17,7 +17,7 @@
 const static float INCREMENT=0.01;
 const static float ZOOM=0.1;
 constexpr static float s_sphereUpdate=0.05;
-bool enemy=true;
+bool enemy=false;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -169,17 +169,16 @@ m_transform.setPosition(m_sphere->getPosition());
 
 //-------------------------enemy
 //  create and
-ngl::VAOPrimitives *prim_1=ngl::VAOPrimitives::instance();
-prim_1->createSphere("Enemy",0.9,50);
+ngl::VAOPrimitives *enemy_prim=ngl::VAOPrimitives::instance();
+enemy_prim->createSphere("Enemy",0.9,50);
 //init enemy with default position
-m_enemy.reset(new Enemy(ngl::Vec3(0,5.5,0)/*,m_sphere->getPosition())*/));
-//enemy set prey?
+m_enemy.reset(new Enemy());
 
-//create enemy bump
+//create enemy bump,keep this line otherwise it crashes on collision
 m_sphereBump.reset(new SphereBump(m_enemy->getPosition()));
-//create BBOX
-m_bbox.reset( new ngl::BBox(ngl::Vec3(),1.0f,1.0f,1.0f));
-m_bbox->setDrawMode(GL_LINE);
+//create BBOX what's this for?
+//m_bbox.reset( new ngl::BBox(ngl::Vec3(),1.0f,1.0f,1.0f));
+//m_bbox->setDrawMode(GL_LINE);
 
     Cube();
 }
@@ -225,33 +224,27 @@ void Window::drawScene(const std::string &_shader)
     m_sphere->draw();
 
   }
-  //draw collision sphere
-/*  m_transform.reset();
-  {
-  // m_transform.setPosition(m_sphereBump->getPosition());
-   //std::cout<<m_sphereBump->getPosition()<<'\n';
 
-   loadMatricesToShader();
-    m_sphereBump->draw();
+m_transform.reset();
+{
+m_transform.setPosition(m_enemy->getPosition()); //set to 5,5,5
+loadMatricesToShader();
+m_enemy->draw();
 
-  }
-*/
-  //enemy move and draw
-  if (enemy=true){
-      m_transform.reset();
-      {
-           m_transform.setPosition(m_enemy->getPosition());//1?
-           m_enemy->setPrey(m_sphere->getPosition());
-           moveEnemy();//2?
 
-           //get velocity from sphere and pass to enemy steerForSeek which will return
-           // desired vel vector which will then be added to movement.
-           //this has to be before move func to get player pos before calculating velocity?
-            loadMatricesToShader();
-            m_enemy->draw();
+    if(sphereSphereCollision(m_sphere->getPosition(),2.5, m_enemy->getPosition(),2.5) == true) //trigger area
+    enemy=true; //trigger flag
+    if(enemy)
+    {
+        m_transform.setPosition(m_enemy->getPosition());//1?
 
-      }
-  }
+        m_enemy->setPrey(m_sphere->getPosition());
+        moveEnemy();
+        std::cout<<"enemy triggered\n";
+
+    }
+}
+
   // get width and height of plane edge here;
 
   {
@@ -320,10 +313,15 @@ bool Window::sphereSphereCollision(ngl::Vec3 _pos1, GLfloat _radius1, ngl::Vec3 
 
 void Window::checkCollisions()
 {
-    bool collide=sphereSphereCollision(m_sphere->getPosition(),0.5,m_enemy->getPosition(),0.5);
+    bool collide=sphereSphereCollision(m_sphere->getPosition(),0.5,m_enemy->getPosition(),0.8);
     m_enemy->setHit(collide);
 }
 //----------------------------------------------------------------------------------------------------------------------
+void Window::triggerEnemy()
+{
+    //if player in enemy attack radius,aggro
+    bool attackable=sphereSphereCollision(m_sphere->getPosition(),2.5,m_enemy->getPosition(),2.5);
+}
 void Window::mouseMoveEvent (QMouseEvent * _event)
 {
 //rotation and translation with mouse movements
@@ -477,7 +475,7 @@ void Window::moveSphere()
        checkCollisions();
 
         //feeding in the key movements into the positions of the sphere
-        if(sphereSphereCollision(m_sphere->getPosition(),0.5, m_sphereBump->getPosition(),1.0f) == false)
+        if(sphereSphereCollision(m_sphere->getPosition(),0.5, m_sphereBump->getPosition(),1.0f) == false)           
         {
             m_sphere->move(xDirection,zDirection);
             m_sphere->rotate(rotation);

@@ -70,6 +70,7 @@ private:
     std::unique_ptr<Enemy> m_enemy;
     std::unique_ptr<ngl::BBox> m_bbox;
     void checkCollisions();
+    void triggerEnemy();
     bool sphereSphereCollision( ngl::Vec3 _pos1, GLfloat _radius1, ngl::Vec3 _pos2, GLfloat _radius2 );
 };
 

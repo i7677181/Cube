@@ -27,12 +27,12 @@ public:
     ngl::Vec3 m_velocity;
     ngl::Vec3 getVelocity() const {return m_velocity;}
     void setVelocity(float _x, float _y, float _z);
+
 private:
 
 
     ngl::Vec3 m_pos;
     ngl::Vec3 m_rotcube;
-
 
     const static float s_increment;
 

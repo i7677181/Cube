@@ -18,7 +18,6 @@ Sphere::Sphere(ngl::Vec3 _pos):
     m_pos.m_y=5.5;
     m_velocity.set(1.0, 0.0, 0.0);
 }
-
 //---------------------------------------------------------------------------------
 
 //Making the sphere move (input from controls in NGLScene)
@@ -109,9 +108,6 @@ void Sphere::rotateCube()
     if (timer%speed==0)
     {
         rotation = false;
-        ///std::cout<<aimRotation<<"        aimRotation" <<std::endl;
-        ///std::cout<<totalZrotation<<"        totalrotation of z" << std::endl;
-        ///std::cout<<m_rotcube<<"  total cube rotation\n "<<std::endl;
     }
 }
 

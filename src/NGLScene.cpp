@@ -1,9 +1,9 @@
 #include <QMouseEvent>
 #include <QGuiApplication>
 #include <QApplication>
+#include <algorithm>
+#include <iostream>
 
-#include "NGLScene.h"
-//#include "Windows.h"
 #include <ngl/Camera.h>
 #include <ngl/Light.h>
 #include <ngl/Material.h>
@@ -11,8 +11,10 @@
 #include <ngl/VAOPrimitives.h>
 #include <ngl/ShaderLib.h>
 #include <ngl/NGLStream.h>
-#include <iostream>
-#include <enemy.h>
+
+
+#include "enemy.h"
+#include "NGLScene.h"
 
 const static float INCREMENT=0.01;
 const static float ZOOM=0.1;
@@ -39,6 +41,7 @@ Window::Window()
 Window::~Window()
 {
   std::cout<<"Shutting down NGL, removing VAO's and Shaders\n";
+
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -47,14 +50,14 @@ void Window::resizeGL(QResizeEvent *_event)
 {
   m_width=_event->size().width()*devicePixelRatio();
   m_height=_event->size().height()*devicePixelRatio();
-  m_cam.setShape(45.0f,(float)width()/height(),0.05f,350.0f);
+  m_cam->setShape(45.0f,(float)width()/height(),0.05f,350.0f);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
 void Window::resizeGL(int _w , int _h)
 {
-  m_cam.setShape(45.0f,(float)_w/_h,0.05f,350.0f);
+  m_cam->setShape(45.0f,(float)_w/_h,0.05f,350.0f);
   m_width=_w*devicePixelRatio();
   m_height=_h*devicePixelRatio();
 }
@@ -106,8 +109,8 @@ void Window::Cube()
        // now we set the attribute pointer to be 0 (as this matches vertIn in our shader)
        m_vao->setVertexAttributePointer(3,3,GL_FLOAT,0,0); //bind verts to shader
        m_vao->setNumIndices(sizeof(indices));
-     // now unbind
-      m_vao->unbind();
+       // now unbind
+       m_vao->unbind();
 
  }
 
@@ -115,72 +118,93 @@ void Window::initializeGL()
 {
 
   ngl::NGLInit::instance();
-  glClearColor(0.8f, 0.9f, 1.0f, 1.0f);//Baby blue background-like the sky!
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_MULTISAMPLE);
   ngl::ShaderLib *shader=ngl::ShaderLib::instance();
 
+  glClearColor(0.1f, 0.1f, 0.1f, 1.0f);			   // Grey Background
+
+
   shader->createShaderProgram("Phong");
+  shader->createShaderProgram("Texture");
 
   shader->attachShader("PhongVertex",ngl::ShaderType::VERTEX);
   shader->attachShader("PhongFragment",ngl::ShaderType::FRAGMENT);
+  shader->attachShader("TextureVertex",ngl::ShaderType::VERTEX);
+  shader->attachShader("TextureFragment",ngl::ShaderType::FRAGMENT);
 
   shader->loadShaderSource("PhongVertex","shaders/PhongVertex.glsl");
   shader->loadShaderSource("PhongFragment","shaders/PhongFragment.glsl");
+  shader->loadShaderSource("TextureVertex","shaders/TextureVertex.glsl");
+  shader->loadShaderSource("TextureFragment","shaders/TextureFragment.glsl");
 
   shader->compileShader("PhongVertex");
   shader->compileShader("PhongFragment");
+  shader->compileShader("TextureVertex");
+  shader->compileShader("TextureFragment");
 
   shader->attachShaderToProgram("Phong","PhongVertex");
   shader->attachShaderToProgram("Phong","PhongFragment");
+  shader->attachShaderToProgram("Texture","TextureVertex");
+  shader->attachShaderToProgram("Texture","TextureFragment");
 
   shader->bindAttribute("Phong",0,"inVert");
   shader->bindAttribute("Phong",1,"inUV");
   shader->bindAttribute("Phong",2,"inNormal");
 
+  shader->bindAttribute("Texture",0,"inVert");
+  shader->bindAttribute("Texture",1,"inUV");
+
   shader->linkProgramObject("Phong");
+  shader->linkProgramObject("Texture");
 
   (*shader)["Phong"]->use();
-    shader->setShaderParam1i("Normalize",1);
+  shader->setShaderParam1i("Normalize",1);
+
 
   ngl::Vec3 from(0,10,30);
   ngl::Vec3 to(0,0,0);
   ngl::Vec3 up(0,1,0);
 
   //setting the camera
-  m_cam.set(from,to,up);
-  m_cam.setShape(45,(float)720.0/576.0,0.05,350);
-  shader->setShaderParam3f("viewerPos",m_cam.getEye().m_x,m_cam.getEye().m_y,m_cam.getEye().m_z);
+  m_cam= new ngl::Camera(from,to,up);
+  m_cam->setShape(45,(float)720.0/576.0,0.05,350);
+
+
+  ngl::Material m(ngl::STDMAT::PEWTER);
+  m.loadToShader("material");
 
   m_lightAngle=0.0;
-  m_light.reset( new ngl::Light(ngl::Vec3(sin(m_lightAngle),200,cos(m_lightAngle)),ngl::Colour(0,1,0.3,1),ngl::Colour(1,1,1,1),ngl::LightModes::POINTLIGHT));//Cube is green, light is white.
+  m_light.reset( new ngl::Light(ngl::Vec3(sin(m_lightAngle),200,cos(m_lightAngle)),ngl::Colour(0,1,0.0,1),ngl::Colour(1,1,1,1),ngl::LightModes::DIRECTIONALLIGHT));//Cube is green, light is white.
 
-  ngl::Mat4 iv=m_cam.getViewMatrix();
+  ngl::Mat4 iv=m_cam->getViewMatrix();
   iv.transpose();
   m_light->setTransform(iv);
   m_light->loadToShader("light");
 
-  ngl::VAOPrimitives *prim=ngl::VAOPrimitives::instance();
 
-//create player sphere
-prim->createSphere("sphere",0.5,50);
-m_sphere.reset(new Sphere(ngl::Vec3(0,5.5,0)));
-m_transform.setPosition(m_sphere->getPosition());
 
-//-------------------------enemy
-//  create and
-ngl::VAOPrimitives *enemy_prim=ngl::VAOPrimitives::instance();
-enemy_prim->createSphere("Enemy",0.9,50);
-//init enemy with default position
-m_enemy.reset(new Enemy());
+  //enemy vec
+  // std::vector<Enemy> enemyVector;
+    /** player, enemy, collision, cube and texture initiations*/
 
-//create enemy bump,keep this line otherwise it crashes on collision
-m_sphereBump.reset(new SphereBump(m_enemy->getPosition()));
-//create BBOX what's this for?
-//m_bbox.reset( new ngl::BBox(ngl::Vec3(),1.0f,1.0f,1.0f));
-//m_bbox->setDrawMode(GL_LINE);
+    ngl::VAOPrimitives *prim=ngl::VAOPrimitives::instance();
 
+    // create player,enemy,collision
+    prim->createSphere("sphere",0.5,50);
+    m_sphere.reset(new Sphere(ngl::Vec3(0,5.5,0)));
+    m_transform.setPosition(m_sphere->getPosition());
+
+    createEnemy();
+
+
+    //create enemy bump,keep this line otherwise it crashes on collision
+  //  m_sphereBump.reset(new SphereBump(m_enemy->getPosition()));
+    //cube VAO
     Cube();
+    //textures
+    m_space = new Space("Textures/Space.jpg",m_cam);
+
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -191,21 +215,26 @@ void Window::loadMatricesToShader()
 
   ngl::Mat3 normalMatrix;
   ngl::Mat4 M=m_transform.getMatrix()*m_mouseGlobalTX;
-  ngl::Mat4 MV=  M*m_cam.getViewMatrix();
-  ngl::Mat4 MVP=  MV*m_cam.getProjectionMatrix();
+  ngl::Mat4 MV=  M*m_cam->getViewMatrix();
+  ngl::Mat4 MVP=  MV*m_cam->getProjectionMatrix();
+
   normalMatrix=MV;
   normalMatrix.inverse();
+
   shader->setShaderParamFromMat4("MVP",MVP);
+  shader->setShaderParamFromMat3("normalMatrix",normalMatrix);
+
 
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
 void Window::drawScene(const std::string &_shader)
+
 {
 
   ngl::ShaderLib *shader=ngl::ShaderLib::instance();
-  (*shader)[_shader]->use();
+  (*shader)["Phong"]->use();
   ngl::Mat4 rotX;
   ngl::Mat4 rotY;
   rotX.rotateX(m_spinXFace);
@@ -215,39 +244,45 @@ void Window::drawScene(const std::string &_shader)
   m_mouseGlobalTX.m_m[3][1] = m_modelPos.m_y;
   m_mouseGlobalTX.m_m[3][2] = m_modelPos.m_z;
 
-//draw sphere at current pos;
+  rotX.rotateX(m_spinXFace);
+  rotY.rotateY(m_spinYFace);
+  m_mouseGlobalTX=rotY*rotX;
+  m_mouseGlobalTX.m_m[3][0] = m_modelPos.m_x;
+  m_mouseGlobalTX.m_m[3][1] = m_modelPos.m_y;
+  m_mouseGlobalTX.m_m[3][2] = m_modelPos.m_z;
+
+//draw player
   m_transform.reset();
   {
     m_transform.setPosition(m_sphere->getPosition());
-   loadMatricesToShader();
-   shader->setUniform("Colour", 0.5f,0.0f, 0.0f);
+    loadMatricesToShader();
+    shader->setUniform("Colour", 1.0f,0.0f,0.8f);//Set colour for flat diffuse colour shader
+    shader->setUniform("myflag",1);//Flag enables the flat diffuse colour shader
     m_sphere->draw();
-
   }
-
-m_transform.reset();
-{
-m_transform.setPosition(m_enemy->getPosition()); //set to 5,5,5
-loadMatricesToShader();
-m_enemy->draw();
-
-
-    if(sphereSphereCollision(m_sphere->getPosition(),2.5, m_enemy->getPosition(),2.5) == true) //trigger area
-    enemy=true; //trigger flag
-    if(enemy)
+    float i=.1;
+    for(int i=0;i<enemyVector.size();i++)
     {
-        m_transform.setPosition(m_enemy->getPosition());//1?
+        if(sphereSphereCollision(m_sphere->getPosition(),2.5, enemyVector[i].getPosition(),2.5) == true) //attack radius
+        enemy=true; //trigger flag
+        if(enemy)
 
-        m_enemy->setPrey(m_sphere->getPosition());
-        moveEnemy();
-        std::cout<<"enemy triggered\n";
+        {
+            m_transform.setPosition(enemyVector[i].getPosition()); // resets position each frame??
+            loadMatricesToShader();
+            shader->setUniform("Colour", 1.0f*i,1.0f*i, 1.0f);//Set colour for flat diffuse colour shader
+            shader->setUniform("myflag",1);//Flag enables the flat diffuse colour shader
 
+            enemyVector[i].setPrey(m_sphere->getPosition());
+         //   moveEnemy(enemyVector[i]); //moves each enemy obj
+            enemyVector[i].move(m_sphere->getPosition());
+            enemyVector[i].draw(i);
+        }
+        i+=.2;
     }
-}
 
   // get width and height of plane edge here;
 
-  {
       float height=5;
       float width=5;
 
@@ -260,17 +295,17 @@ m_enemy->draw();
      //scaling of cube
      m_transform.setScale(width,height,width);
 
-     loadMatricesToShader();
-
-     shader->setUniform("Colour", 0.0f,0.5f, 0.0f);
+    loadMatricesToShader();
+    shader->setUniform("Colour", 1.0f,1.0f, 1.0f);//Set colour for flat diffuse colour shader
+    shader->setUniform("myflag",0);//Flag enables the phong shader
 
      m_vao->bind();
      m_vao->draw();
      m_vao->unbind();
 
-
      }
-  }
+
+ m_space->draw();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -281,10 +316,6 @@ void Window::paintGL()
     glViewport(0,0,m_width,m_height);
     drawScene("Phong");
 
-
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glViewport(0,0,m_width,m_height);
-  drawScene("Phong");
 
 
 }
@@ -313,15 +344,19 @@ bool Window::sphereSphereCollision(ngl::Vec3 _pos1, GLfloat _radius1, ngl::Vec3 
 
 void Window::checkCollisions()
 {
-    bool collide=sphereSphereCollision(m_sphere->getPosition(),0.5,m_enemy->getPosition(),0.8);
+    for (int i=0;i<enemyVector.size();i++){
+    bool collide=sphereSphereCollision(m_sphere->getPosition(),0.5,enemyVector[i].getPosition(),0.8);
     m_enemy->setHit(collide);
+    }
 }
-//----------------------------------------------------------------------------------------------------------------------
+
 void Window::triggerEnemy()
 {
     //if player in enemy attack radius,aggro
     bool attackable=sphereSphereCollision(m_sphere->getPosition(),2.5,m_enemy->getPosition(),2.5);
 }
+
+//----------------------------------------------------------------------------------------------------------------------
 void Window::mouseMoveEvent (QMouseEvent * _event)
 {
 //rotation and translation with mouse movements
@@ -471,28 +506,35 @@ void Window::moveSphere()
     }
 
     if(m_keysPressed.size() !=0)
-    {
+    {      
+        //returns yes or no?
+ //   for(i=0;i<enemyVector.size();i++)
+  //  {
        checkCollisions();
+       //for each enemy object in enemy array
+       //check each enemy position for collision
 
-        //feeding in the key movements into the positions of the sphere
-        if(sphereSphereCollision(m_sphere->getPosition(),0.5, m_sphereBump->getPosition(),1.0f) == false)           
+        //offset  player on collision
+        if(sphereSphereCollision(m_sphere->getPosition(),0.5, m_sphereBump->getPosition(),1.0f) == false)
         {
             m_sphere->move(xDirection,zDirection);
             m_sphere->rotate(rotation);
-        }
+      }
         else
-       {
+      {
             m_sphere->move((xDirection-s_sphereUpdate), (zDirection-s_sphereUpdate));
-        }
+       }
+
+      //  } //vector enemy
     }
 }
-
 //----------------------------------------------------------------------------------------------------------------------
 
-void Window::moveEnemy()
+
+void Window::moveEnemy(Enemy _enemy) //not the same enemy obj
 {
     //pass position of player to enemy class
- m_enemy->move(m_sphere->getPosition()); //0.75f
+ _enemy.move(m_sphere->getPosition()); //0.75f
 
 }
 void Window::keyReleaseEvent(QKeyEvent *_event)
@@ -509,4 +551,47 @@ void Window::updateLight()
 
   m_light->setPosition(ngl::Vec3(4.0*cos(m_lightAngle),2,4.0*sin(m_lightAngle)));
   m_light->loadToShader("light");
+}
+
+void Window::createEnemy()
+{
+
+    ngl::VAOPrimitives *enemy_prim=ngl::VAOPrimitives::instance();
+    enemy_prim->createSphere("Enemy",0.9,50);
+
+    initEnemyPos[0]=ngl::Vec3(0,6,5);  //x,y,z y=height
+    initEnemyPos[1]=ngl::Vec3(1,6,7);
+    initEnemyPos[2]=ngl::Vec3(2,6,8);
+    initEnemyPos[3]=ngl::Vec3(8,6,5);
+    initEnemyPos[4]=ngl::Vec3(5,6,5);
+
+    //fill enemy vector with 5 enemy objects
+    for (int i=0;i<5;i++){
+    m_enemy.reset(new Enemy(initEnemyPos[i])); //init at same pos
+    enemyVector.push_back(Enemy(initEnemyPos[i]));
+    std::cout << "Enemy obj array size: " << enemyVector.size() << "\n";
+    }
+
+      int n=enemyVector.size();
+      std::cout<<"total size of enemy array:"<<n<<"\n";
+
+     m_transform.reset();
+    {
+        //for size of enemy obj array
+        for (int i=0;i<n;i++)
+        {
+        m_transform.setPosition(initEnemyPos[i]); //set to differnt positions
+        loadMatricesToShader();
+      //  enemyVector[i].drawInit(initEnemyPos[i]);//pass offset from array of vectors
+        enemyVector[i].draw(i); //doesnt work?
+        std::cout<<"created vector\n";
+        std::cout<<initEnemyPos[i].length();
+        }
+
+
+    }
+
+     //create enemy bump,keep this line otherwise it crashes on collision
+    m_sphereBump.reset(new SphereBump(m_enemy->getPosition()));
+
 }

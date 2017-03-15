@@ -9,9 +9,12 @@
 #include <QOpenGLWindow>
 #include <memory>
 #include <QSet>
+
+
 #include "Sphere.h"
 #include "SphereBump.h"
-#include <enemy.h>
+#include "enemy.h"
+#include "Space.h"
 
 class Window : public QOpenGLWindow
 {
@@ -25,9 +28,10 @@ class Window : public QOpenGLWindow
     void resizeGL(QResizeEvent *_event);
     // Qt 5.x uses this instead! http://doc.qt.io/qt-5/qopenglwindow.html#resizeGL
     void resizeGL(int _w, int _h);
+    std::vector<Enemy> enemyVector;
 
 private:
-
+     ngl::Vec3 initEnemyPos [5];
     int m_spinXFace;
     int m_spinYFace;
     bool m_rotate;
@@ -39,7 +43,7 @@ private:
     int m_width;
     int m_height;
     ngl::Mat4 m_mouseGlobalTX;
-    ngl::Camera m_cam;
+    ngl::Camera *m_cam;
     ngl::Transformation m_transform;
     ngl::Vec3 m_modelPos;
     ngl::Real m_lightAngle;
@@ -54,24 +58,29 @@ private:
     void keyReleaseEvent(QKeyEvent *_event);
     QSet<Qt::Key> m_keysPressed;
     void drawScene(const std::string &_shader);
+    void createEnemy();
+
     void timerEvent (QTimerEvent *event);
     int m_updateSphereTimer;
     int m_redrawTimer;
     void moveSphere();
+
+
     void stopSphere();
     std::unique_ptr<Sphere> m_sphere;
     std::unique_ptr<ngl::Light> m_light;
 
-    void moveEnemy();
+    void moveEnemy(Enemy _enemy);
     std::unique_ptr<SphereBump> m_sphereBump;
     void Cube();
     void updateLight();
     std::unique_ptr<ngl::VertexArrayObject> m_vao;
     std::unique_ptr<Enemy> m_enemy;
-    std::unique_ptr<ngl::BBox> m_bbox;
     void checkCollisions();
     void triggerEnemy();
     bool sphereSphereCollision( ngl::Vec3 _pos1, GLfloat _radius1, ngl::Vec3 _pos2, GLfloat _radius2 );
+
+    Space *m_space;
 };
 
 #endif

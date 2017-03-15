@@ -16,17 +16,19 @@ MOC_DIR=moc
 # on a mac we don't create a .app bundle file ( for ease of multiplatform use)
 CONFIG-=app_bundle
 # Auto include all .cpp files in the project src directory (can specifiy individually if required)
-SOURCES+= $$PWD/src/NGLScene.cpp    \
-                                        $$PWD/src/main.cpp \
-$$PWD/src/Sphere.cpp \
-$$PWD/src/SphereBump.cpp \
-    src/enemy.cpp
+SOURCES+=   $$PWD/src/NGLScene.cpp \
+            $$PWD/src/main.cpp \
+            $$PWD/src/Sphere.cpp \
+            $$PWD/src/SphereBump.cpp \
+            $$PWD/src/enemy.cpp \
+            $$PWD/src/Space.cpp
 
 # same for the .h files
-HEADERS+= $$PWD/include/NGLScene.h \
-$$PWD/include/Sphere.h \
-$$PWD/include/SphereBump.h \
-    include/enemy.h
+HEADERS+=   $$PWD/include/NGLScene.h \
+            $$PWD/include/Sphere.h \
+            $$PWD/include/SphereBump.h \
+            $$PWD/include/enemy.h \
+            $$PWD/include/Space.h
 # and add the include dir into the search path for Qt and make
 INCLUDEPATH +=./include
 # where our exe is going to live (root of project)
@@ -36,7 +38,7 @@ OTHER_FILES+= shaders/*.glsl \
 							README.md
 # were are going to default to a console app
 CONFIG += console
-INCLUDEPATH +=C:/OpenSteer/include
+
 # note each command you add needs a ; as it will be run as a single line
 # first check if we are shadow building or not easiest way is to check out against current
 !equals(PWD, $${OUT_PWD}){

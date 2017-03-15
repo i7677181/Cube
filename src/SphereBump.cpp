@@ -22,5 +22,4 @@ void SphereBump::draw()
         shader->setUniform("Colour",0.0f,0.0f,1.0f);
         ngl::VAOPrimitives::instance()->draw("sphereBump");
 
-
 }

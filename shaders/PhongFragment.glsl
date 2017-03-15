@@ -1,18 +1,5 @@
+
 #version 330 core
-/// @brief our output fragment colour
-layout (location =0) out vec4 fragColour; //box colour from inVert
-/// @brief[in] the vertex color in
-in vec3 vertColour;
-
-void main ()
-{
-//out color
-fragColour= vec4(vertColour,1);
-
-}
-
-
-/*#version 330 core
 //Output fragment colour
 layout (location =0) out vec4 fragColour;
 
@@ -22,9 +9,13 @@ in vec3 fragmentNormal;
 //The vertex colour in
 in vec3 vertColour;
 
+//Uniform integer flag
+uniform int myflag;
+
+
 //---------------------------------------------------------------------------------
 
-///Material structure phong model
+///Material structure
 struct Materials
 {
   vec4 ambient;
@@ -42,10 +33,7 @@ struct Lights
   vec4 ambient;
   vec4 diffuse;
   vec4 specular;
-  float constantAttenuation;
-  float spotCosCutoff;
-  float quadraticAttenuation;
-  float linearAttenuation;
+
 };
 
 //---------------------------------------------------------------------------------
@@ -55,6 +43,7 @@ uniform Materials material;
 
 uniform Lights light;
 in vec3 lightDir;
+
 // Out the blinn half vector
 in vec3 halfVector;
 in vec3 eyeDirection;
@@ -62,13 +51,12 @@ in vec3 vPosition;
 
 //---------------------------------------------------------------------------------
 
-//A function to calculate point light values
-vec4 pointLight()
+//A function to calculate Directional light values
+vec4 DirectionalLight()
 {
   vec3 N = normalize(fragmentNormal);
   vec3 halfV;
   float ndothv;
-  float attenuation;
   vec3 E = normalize(eyeDirection);
   vec3 L = normalize(lightDir);
   float lambertTerm = dot(N,L);
@@ -97,7 +85,18 @@ return ambient + diffuse + specular; //Complete phong shader
 void main ()
 {
 
-fragColour=pointLight();
-//fragColour= vec4(vertColour,1);//Rainbow shader for cube and sphere.
 
-}*/
+//If stament to swtich between phong shader and flat diffuse colour shader
+    if(myflag==0)
+    {
+        fragColour=DirectionalLight();//Enables directional light within the phong shader
+    }
+
+    else
+    {
+     fragColour= vec4(vertColour,1);//Enables flat diffuse colour shader
+    }
+
+}
+
+

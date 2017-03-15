@@ -12,16 +12,18 @@
 class Enemy
 {
 public:
-    Enemy();
+    Enemy(ngl::Vec3 _pos);
     void move(const ngl::Vec3 &m_spherePos);
-    void draw();
-    void drawInit();
+    void draw(float i);
+    void drawInit(ngl::Vec3 _offset);
     void setSteer();
     inline ngl::Vec3 getPosition() {return m_pos;}
     bool prey;
     void setPrey(const ngl::Vec3 &m_spherePos);
     float distanceCalc(ngl::Vec3 a ,ngl::Vec3 b);
     void updatePosition();
+    int d=0;
+
 
 
 
@@ -42,6 +44,7 @@ private:
     ngl::Vec3 m_velocity;
     ngl::Vec3 desiredVelocity;
     ngl::Vec3 m_goal;
+    ngl::Vec3 m_avoid;
     float m_prevDistance;
     float m_speed;
     float m_maxAccelerate;
@@ -52,6 +55,7 @@ private:
     float m_zmin;
    float m_maxSpeed;
     float   m_minSpeed;
+    float m_avoidWeight;
     void setChase(ngl::Vec3 _pos, float _targetSpeed);
 void setTarget();
 void setRotation();

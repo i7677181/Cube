@@ -3,21 +3,20 @@
 #include <cmath>
 #include <numeric>
 #include <cstdlib>
-#include <OpenSteer/SteerLibrary.h>
 
-/* collision bump is not set to current enemy location but at origin of enemy sphere creation
-    add obstacle avoidance
-    collision check for enemy must be made in NGLScene
-*/
-Enemy::Enemy()
+Enemy::Enemy(ngl::Vec3 _pos)
 {
-m_pos=(0,0,5); //init pos,doesnt work?
+m_pos=_pos;
+std::cout<< m_pos.m_x<<"\n";
+std::cout<< m_pos.m_y<<"\n";
+std::cout<< m_pos.m_z<<"\n";
 prey=false;
-m_speed=0.5;
+m_speed=0.4;
 m_maxAccelerate=0.02;
-m_velocity.set(0.8,0.3,0.2);
-m_maxSpeed=0.5;
-m_minSpeed=0.1;
+m_velocity.set(1,1.3,1.2);
+m_maxSpeed=0.6;
+m_minSpeed=0.2;
+m_avoidWeight=0.2;
 }
 
 //call separetly from move
@@ -29,8 +28,14 @@ void Enemy::setPrey(const ngl::Vec3 &m_spherePos)//@param player pos
 //fix
 void Enemy::setChase(ngl::Vec3 _pos, float _targetSpeed)
 {
-  float predict = distanceCalc(m_prey, m_pos)/20;
-  m_goal=(_pos+_targetSpeed*predict)-m_pos;
+    float predict = distanceCalc(m_prey, m_pos)/10;
+  //  m_goal=(_pos+_targetSpeed*predict)-m_pos; //MVC  compiler
+    //for each x/y/z component
+    //gcc compiler
+    m_goal.m_x=(_pos.m_x+_targetSpeed*predict)-m_pos.m_x;
+    m_goal.m_y=(_pos.m_y+_targetSpeed*predict)-m_pos.m_y;
+    m_goal.m_z=  (_pos.m_z+_targetSpeed*predict)-m_pos.m_z;
+
   if(m_goal.length()!=0)
   {
     m_goal.normalize();
@@ -49,6 +54,7 @@ fraction = ((float) r / RAND_MAX) * (max - min);
 //set prey to be player
 m_prey= m_spherePos; //player
 //calc distance between player and enemy
+std::cout<<"enemy pos is"<<m_pos.m_x<<"\n";
 float distance =  distanceCalc(m_prey,m_pos);
 
  if(distance<m_prevDistance)
@@ -68,15 +74,17 @@ setSteer();
 updatePosition();
 setRotation();
 kill();
+//if far away from player,avoid neighbours, else don't
 }
 
-void Enemy::draw()
+void Enemy::draw(float i)
 {
+
     ngl::ShaderLib *shader=ngl::ShaderLib::instance();
     if(m_hit)
-    shader->setUniform("Colour",1.0f,0.0f,0.0f);
+    shader->setUniform("Colour",1.0f*i,0.0f*i,0.0f);
     else
-    shader->setUniform("Colour",0.0f,0.0f,1.0f);
+    shader->setUniform("Colour",0.0f*i,0.0f,1.0f);
     ngl::VAOPrimitives::instance()->draw("Enemy");
 }
 
@@ -101,8 +109,8 @@ void Enemy::fleeWalls()
 void Enemy::setTarget()
 {
   m_goal*=30;
-  //m_avoid*=m_avoidWeight;
-  m_target=m_goal+m_flee;//+m_avoid;
+  m_avoid*=m_avoidWeight;
+  m_target=m_goal+m_flee+m_avoid;
   if(m_target.length()!=0)
   {
     m_target.normalize();
@@ -146,19 +154,58 @@ void Enemy::setRotation()
 
 void Enemy::kill()
 {
-  //   std::cout<<"enemy is at "<<m_pos.m_x<<"\n"<<"player is at"<<m_prey.m_x<<"\n";
     if(m_pos==m_prey)
     {
-        std::cout<<"DEAD\n";
+        std::cout<<"DEAD "<<d<<"\n";
+        d++;
     }
 }
 
-void Enemy::drawInit()
+void Enemy::drawInit(ngl::Vec3 _offset)
 {
-    ngl::ShaderLib *shader=ngl::ShaderLib::instance();
+  ngl::ShaderLib *shader=ngl::ShaderLib::instance();
+    shader->setUniform("Colour", 1.0f,1.0f, 1.0f);//Set colour for flat diffuse colour shader
+      shader->setUniform("myflag",1);//Flag enables the flat diffuse colour shader
+    //set pos to draw only once in beginning
+    m_pos=_offset;
+
     if(m_hit)
     shader->setUniform("Colour",1.0f,0.0f,0.0f);
     else
     shader->setUniform("Colour",0.0f,0.0f,1.0f);
     ngl::VAOPrimitives::instance()->draw("Enemy");
+    std::cout<<"ENEMY DRAWN \n";
+
+
 }
+/*
+void Enemy::Avoid()
+{
+  // first check neighbours for collisions, obstacle collisions are
+  // checked in World.cpp
+  for(int i=0; i<m_neighbours.size();++i)
+  {
+    findObstacle(m_neighbours[i]->getPosition(), m_neighbours[i]->getRadius());
+  }
+  if(m_velocity.length()!=0)
+  {
+    m_velocity.normalize();
+  }
+  // if there is a collision, calculate the avoidance force as a vector
+  // from the collision position to the ahead vector
+  m_avoid=(0,0,0);
+  ngl::Vec3 ahead(m_position + m_velocity * m_seeAhead * m_speed);
+  if(m_collisionPos != 0)
+  {
+    m_avoid=(ahead-m_collisionPos);
+    if(m_avoid.length()!=0)
+    {
+      m_avoid.normalize();
+    }
+  }
+  else
+  {
+    m_avoid*=0;
+  }
+  m_collisionPos = 0;
+}*/

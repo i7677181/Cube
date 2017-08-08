@@ -1,120 +1,148 @@
-
+///--------------------------------------------------------------------
+/// @brief a simple phong shader
+/// @author Tia-Louise Heeger
+/// @version 1.0
+/// @date 27/05/17
+///--------------------------------------------------------------------
 #version 330 core
-//Both the vertex and normal need to have the same location or the shaders do not work correctly. Calculating the normal from the vertices values declared within the cube class.
-
-//The vertex passed in
+/// @brief[in] The vertex data passed in
 layout (location = 0) in vec3 inVert;
 
-//The normal passed in
-layout (location = 0) in vec3 inNormal;
+/// @brief[in] The normal data passed in
+layout (location = 2) in vec3 inNormal;
 
-//The in uv
+/// @brief[in] The UV data passed in
 layout (location = 1) in vec2 inUV;
 
-//The colours from cube
+/// @brief[in] The Colour data from program
 in vec3 ColourPassedFromProgramToVertexShader;
 
-//Flag to indicate if model has unit normals if not normalize
+/// @brief Flag to indicate if model has unit normals if not normalize
 uniform bool Normalize;
 
-//The eye position of the camera
+/// @brief The viwer position of the camera
 uniform vec3 viewerPos;
 
-//The current fragment normal for the vert being processed
+/// @brief[out] The current fragment normal for the vert being processed
 out vec3 fragmentNormal;
 
-//The out Vertex colour
+/// @brief[out] The out Vertex colour
 out vec3 vertColour;
 
-//Uniform integer flag
+/// @brief Uniform integer flag
  uniform int myflag;
 
-//---------------------------------------------------------------------------------
-
-///Material structure
-struct Materials
+/// @brief light structure
+struct LightInfo
 {
-  vec4 ambient;
-  vec4 diffuse;
-  vec4 specular;
-  float shininess;
+    //// light position
+    vec4 position;
+    /// light ambient
+    vec4 ambient;
+    /// light diffuse
+    vec4 diffuse;
+    /// light specular
+    vec4 specular;
+    /// light spot cos cut off
+    float spotCosCutoff;
+    /// light constant attenuation
+    float constantAttenuation;
+    /// light linear attenuation
+    float linearAttenuation;
+    /// light quadratic attenuation
+    float quadraticAttenuation;
+
 };
 
-//---------------------------------------------------------------------------------
+/// @brief Light information from structure to light 1
+uniform LightInfo light1;
 
-// Light structure
-struct Lights
-{
-  vec4 position;
-  vec4 ambient;
-  vec4 diffuse;
-  vec4 specular;
+/// @brief Light information from structure to light 2
+uniform LightInfo light2;
 
-};
+/// @brief Light information from structure to light 3
+uniform LightInfo light3;
 
-//---------------------------------------------------------------------------------
+/// @brief Light information from structure to light 4
+uniform LightInfo light4;
 
+/// @brief[out] Light direction
+out vec3 lightDir;
 
-uniform Materials material;// Our material
+/// @brief[out] the blinn half vector
+out vec3 halfVector;
 
-uniform Lights light;// Array of lights
-
-
-out vec3 lightDir;// Direction of the lights used for shading
-
-out vec3 halfVector;// out the blinn half vector
+/// @breif[out] the eye direction
 out vec3 eyeDirection;
-out vec3 vPosition;
 
+/// @brief Uniforms for shading calulations
 uniform mat4 MV;
 uniform mat4 MVP;
 uniform mat3 normalMatrix;
 uniform mat4 M;
+
+/// @brief Uniform vec3 for flat diffuse sahder
 uniform vec3 Colour;
 
 
-//---------------------------------------------------------------------------------
-
 void main()
 {
+    /// Calculates the fragment surface normal
+    fragmentNormal = (normalMatrix*inNormal);
 
-fragmentNormal = (normalMatrix*inNormal);// Calculate the fragments surface normal
+    /// Normalise the fragmnet surface
+    if (Normalize == true)
+    {
+        fragmentNormal = normalize(fragmentNormal);
+    }
+    /// calculate the vertex position
+    gl_Position = MVP*vec4(inVert,1.0);
+
+    // Transform the vertex to eye co-ordinates for frag shader
+    /// The vertex in eye co-ordinates  homogeneous
+    vec4 eyeCord=MV*vec4(inVert,1);
+
+    /// accurate light direction calculations with eye coordinates
+    lightDir=vec3(light1.position.xyz-eyeCord.xyz);
+    lightDir=vec3(light2.position.xyz-eyeCord.xyz);
+    lightDir=vec3(light3.position.xyz-eyeCord.xyz);
+    lightDir=vec3(light4.position.xyz-eyeCord.xyz);
+
+    // vec4 for world position
+    vec4 worldPosition = M * vec4(inVert, 1.0);
+
+    /// normalising eye direction
+    eyeDirection = normalize(viewerPos - worldPosition.xyz);
+
+    /// Distance variable
+    float dist;
+    /// accurate light direction calculations with world positions
+    lightDir=(light1.position.xyz - worldPosition.xyz);
+    lightDir=(light2.position.xyz - worldPosition.xyz);
+    lightDir=(light3.position.xyz - worldPosition.xyz);
+    lightDir=(light4.position.xyz - worldPosition.xyz);
+
+    dist = length(lightDir);
+    lightDir/= dist;
+    halfVector = normalize(eyeDirection + lightDir);
 
 
-if (Normalize == true)
-{
- fragmentNormal = normalize(fragmentNormal);
-}
-
-gl_Position = MVP*vec4(inVert,1.0);// Calculate the vertex position
-vec4 worldPosition = M * vec4(inVert, 1.0);
-eyeDirection = normalize(viewerPos - worldPosition.xyz);
-
-// Get vertex position in eye coordinates
-// Transform the vertex to eye co-ordinates for frag shader
-/// The vertex in eye co-ordinates homogeneous
-vec4 eyeCord=MV*vec4(inVert,1);
-
-vPosition = eyeCord.xyz / eyeCord.w;;
-
-float dist;
-
-lightDir=vec3(light.position.xyz-eyeCord.xyz);
-dist = length(lightDir);
-lightDir/= dist;
-halfVector = normalize(eyeDirection + lightDir);
-
-
-//if stament to switch between phong shader and flat diffuse colour shader
+/// @brief if stament to switch between phong shader and flat diffuse colour shader
 if(myflag==0)
-{
-    vertColour=ColourPassedFromProgramToVertexShader;//Enables phong shader calculations
-}
-else
-{
-    vertColour=Colour;//Flat diffuse colour
-}
+    {
+        /// enables phong shader calulations
+        vertColour=ColourPassedFromProgramToVertexShader;
+    }
+    else
+    {
+        ///enables flat diffuse colour
+        vertColour=Colour;
+    }
 
 }
+
+
+
+
 
 

@@ -4,39 +4,63 @@
 #include <ngl/ShaderLib.h>
 #include <ngl/Transformation.h>
 
+
 Space::Space(std::string _texture, ngl::Camera *_cam)
 {
+    /// loading in our texture
+    ngl::Texture t(_texture);
 
-  ngl::Texture t(_texture);
-  m_texID=t.setTextureGL();
+    /// set Id for our texture
+    m_texID=t.setTextureGL();
 
+    /// instance for VAO primitives
+    ngl::VAOPrimitives *prim=ngl::VAOPrimitives::instance();
 
-  ngl::VAOPrimitives *prim=ngl::VAOPrimitives::instance();
-  prim->createSphere("space",500,50);
-  m_camera=_cam;
+    /// primitives to create a sphere to encase our game to project the background
+    prim->createSphere("space",500,50);
+
+    /// variable for our camera
+    m_camera=_cam;
 }
 
 void Space::draw()
 {
-  static float rot=0.0;
+    /// float to set a rotation of background
+    static float rot=0.0;
 
-  ngl::ShaderLib *shader=ngl::ShaderLib::instance();
-  ngl::VAOPrimitives *prim=ngl::VAOPrimitives::instance();
+    /// instance of the shader library
+    ngl::ShaderLib *shader=ngl::ShaderLib::instance();
 
-  glEnable (GL_BLEND);
+    /// instance of VAO primitives
+    ngl::VAOPrimitives *prim=ngl::VAOPrimitives::instance();
 
-  (*shader)["Texture"]->use();
+    /// enable blend
+    glEnable (GL_BLEND);
 
-  ngl::Transformation t;
-  t.setRotation(0,rot,0);
-  rot+=0.02;
-  ngl::Mat4 MVP;
+    /// set use of texture shader
+    (*shader)["Texture"]->use();
 
-  MVP=t.getMatrix()*m_camera->getVPMatrix();
-  shader->setShaderParamFromMat4("MVP",MVP);
-  glBindTexture(GL_TEXTURE_2D,m_texID);
-  prim->draw("space");
+    /// initialise transformation
+    ngl::Transformation t;
 
-  glDisable(GL_BLEND);
+    /// set xyz rotation
+    t.setRotation(0,rot,0);
+
+    /// set y rotation
+    rot+=0.02;
+
+    ngl::Mat4 MVP;
+    MVP=t.getMatrix()*m_camera->getVPMatrix();
+    /// set shader paramter
+    shader->setShaderParamFromMat4("MVP",MVP);
+
+    /// bind texture
+    glBindTexture(GL_TEXTURE_2D,m_texID);
+
+    /// draw primitive
+    prim->draw("space");
+
+    ///disable blend
+    glDisable(GL_BLEND);
 
 }
